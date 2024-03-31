@@ -1,0 +1,10 @@
+services:
+    iotscan:
+        container_name: IOTScan
+        cap_add:
+            - NET_RAW
+            - NET_ADMIN
+        network_mode: host
+        environment:
+            - tshark_int=wlan0
+        image: ghcr.io/moyito2604/iotscan:latest
