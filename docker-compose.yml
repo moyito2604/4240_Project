@@ -5,6 +5,8 @@ services:
             - NET_RAW
             - NET_ADMIN
         network_mode: host
+        privileged: True
         environment:
-            - tshark_int=wlan0
+            - tshark_int=wlp5s0
+            - tshark_srcip=10.121.29.85
         image: ghcr.io/moyito2604/iotscan:latest
