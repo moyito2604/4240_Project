@@ -1,23 +1,22 @@
 import pyshark
 import os
+import socket
 
-interface = os.environ.get("tshark_int")
-sourceip = os.environ.get("tshark_srcip", False)
-#
-# command = f"tshark -i {interface}"
-# if sourceip:
-#     command = command + f" -e ip.src -Y \"ip.src=={sourceip}"
-# print(f"Tshark Command: {command}")
-# os.system(command)
+# Interface for packet capture
+interface = os.environ.get("INTERFACE", False)
 
-interface='wlx984827c0b944'
-sourceip='198.21.252.164'
+# IP of device for capture
+sourceip = os.environ.get("SOURCEIP", False)
+
+# Amount of packets to grab
+packetcnt = os.environ.get("PACKETCNT", False)
+
+if not interface or not sourceip or not packetcnt:
+    print("INTERFACE, SOURCEIP, and PACKETCNT environment variables required.")
+    exit(0)
 
 capture = pyshark.LiveCapture(interface=interface, bpf_filter=f"ip host {sourceip}")
 print("Retrieving Packets")
-#capture.sniff(timeout=5)
-# capture.sniff_continuously(packet_count=5)
 
-#print(capture[0])
-for packet in capture.sniff_continuously(packet_count=1000):
-    print(packet.ip)
+for packet in capture.sniff_continuously(packet_count=packetcnt):
+    print(f"{packet.__dict__['number']}".ljust(7), f"{packet.ip.src} --> {packet.ip.dst}", f"{packet.__dict__['layers']}")
