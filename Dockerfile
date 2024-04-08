@@ -14,8 +14,10 @@ RUN apk add --no-cache tshark
 
 # Set work directory, copy source code to there
 WORKDIR /app
-COPY . .
+COPY IOTScan.py .
 
-ENV tshark_int="wlan0"
+ENV INTERFACE="wlan0"
+ENV SOURCEIP="192.168.0"
+ENV PACKETCNT=1000
 
 CMD [ "python3", "-u", "IOTScan.py" ]
