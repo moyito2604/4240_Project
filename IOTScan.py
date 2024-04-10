@@ -23,17 +23,29 @@ def print_report(packetsrc, packetcnt, barsize):
     packetsrc = dict(sorted(packetsrc.items()))
     print(f"\n{Color.BLUE}{Color.BOLD}*************** PACKET REPORT ***************{Color.END}")
     for dest in packetsrc.keys():
-        print(f"{Color.BLUE}{dest}{Color.END}\nRX: {packetsrc[dest]['RX']} | TX: {packetsrc[dest]['TX']}")
+        RXPacketper = round((packetsrc[dest]['RX'] / packetcnt) * 100, 2)
+        TXPacketper = round((packetsrc[dest]['TX'] / packetcnt) * 100, 2)
+        if 'nslookup' in packetsrc[dest]:
+            print(f"{Color.BLUE}{packetsrc[dest]['nslookup']}\n{Color.CYAN}{Color.BOLD}RX: {packetsrc[dest]['RX']} "
+                  f"({RXPacketper}%){Color.END} | {Color.PURPLE}{Color.BOLD}TX: {packetsrc[dest]['TX']} "
+                  f"({TXPacketper}%){Color.END}")
+        else:
+            print(f"{Color.BLUE}{dest}\n{Color.CYAN}{Color.BOLD}RX: {packetsrc[dest]['RX']} ({RXPacketper}%){Color.END}"
+                  f" | {Color.PURPLE}{Color.BOLD}TX: {packetsrc[dest]['TX']} ({TXPacketper}%){Color.END}")
         packets = packetsrc[dest]['RX'] + packetsrc[dest]['TX']
         perc = packets / packetcnt
         barlen = round(barsize * perc)
         bar = ""
         for cnt in range(1, barsize + 1):
             if cnt <= barlen:
+                if cnt <= (packetsrc[dest]['RX'] / packetcnt) * barsize:
+                    bar += f"{Color.CYAN}{Color.BOLD}"
+                else:
+                    bar += f"{Color.END}{Color.PURPLE}{Color.BOLD}"
                 bar += "█"
             else:
                 bar += " "
-        print(f"{Color.GREEN}{Color.BOLD}[{bar}]{Color.END}")
+        print(f"{Color.GREEN}{Color.BOLD}[{bar}{Color.END}{Color.GREEN}{Color.BOLD}] {round(perc*100, 2)}%{Color.END}")
 
 
 def main():
@@ -52,10 +64,6 @@ def main():
     # Amount of calls to domain
     packetsrc = {}
 
-    # interface = 'wlx984827c0b944'
-    # sourceip = '10.42.0.130'
-    # packetcnt = 1000
-
     # Ensures that all variables are accounted for
     if not interface or not sourceip or not packetcnt:
         print("INTERFACE, SOURCEIP, and PACKETCNT environment variables required.")
@@ -72,37 +80,59 @@ def main():
         # the packet is labeled as a transmitted packet
         if sourceip in packet.ip.src:
 
-            try:
-                nslookup = socket.getnameinfo((packet.ip.dst, 0), 0)[0]
-            except gaierror:
-                nslookup = packet.ip.dst
+            ip = packet.ip.dst
+            if ip in packetsrc:
+                packetsrc[ip]['TX'] += 1
+            else:
+                packetsrc[ip] = {}
+                packetsrc[ip]['RX'] = 0
+                packetsrc[ip]['TX'] = 1
+
+            if packetsrc[ip].get('nslookup') is None:
+                try:
+                    packetsrc[ip]['nslookup'] = socket.getnameinfo((ip, 0), 0)[0]
+                    nslookup = packetsrc[ip]['nslookup']
+                except gaierror:
+                    nslookup = ip
+            else:
+                nslookup = packetsrc[ip]['nslookup']
 
             print(f"{packet.__dict__['number']}".ljust(7),
-                  f'{packet.ip.src} --> {nslookup}', f"{packet.__dict__['layers']}")
-            if nslookup in packetsrc:
-                packetsrc[nslookup]['TX'] += 1
-            else:
-                packetsrc[nslookup] = {}
-                packetsrc[nslookup]['RX'] = 0
-                packetsrc[nslookup]['TX'] = 1
+                  f'{packet.ip.src} {Color.PURPLE}{Color.BOLD}-->{Color.END} {nslookup}', f"{packet.__dict__['layers']}")
 
         # If the destination IP is identified to be part of the subnet or single IP we are looking for, then it makes
         # sure the packet is labeled as a received packet
         else:
 
-            try:
-                nslookup = socket.getnameinfo((packet.ip.src, 0), 0)[0]
-            except gaierror:
-                nslookup = packet.ip.src
+            ip = packet.ip.src
+            if ip in packetsrc:
+                packetsrc[ip]['RX'] += 1
+            else:
+                packetsrc[ip] = {}
+                packetsrc[ip]['RX'] = 1
+                packetsrc[ip]['TX'] = 0
+
+            if packetsrc[ip].get('nslookup') is None:
+                try:
+                    packetsrc[ip]['nslookup'] = socket.getnameinfo((ip, 0), 0)[0]
+                    nslookup = packetsrc[ip]['nslookup']
+                except gaierror:
+                    nslookup = ip
+            else:
+                nslookup = packetsrc[ip]['nslookup']
 
             print(f"{packet.__dict__['number']}".ljust(7),
-                  f'{nslookup} --> {packet.ip.dst}', f"{packet.__dict__['layers']}")
-            if nslookup in packetsrc:
-                packetsrc[nslookup]['RX'] += 1
+                  f'{packet.ip.dst} {Color.CYAN}{Color.BOLD}<--{Color.END} {nslookup}', f"{packet.__dict__['layers']}")
+
+    for dest in packetsrc.keys():
+        for cnt in range(0, 3):
+            if dest == packetsrc[dest].get('nslookup'):
+                try:
+                    packetsrc[dest]['nslookup'] = socket.getnameinfo((dest, 0), 0)[0]
+                except gaierror:
+                    pass
             else:
-                packetsrc[nslookup] = {}
-                packetsrc[nslookup]['RX'] = 1
-                packetsrc[nslookup]['TX'] = 0
+                break
 
     print_report(packetsrc, packetcnt, barsize)
 
