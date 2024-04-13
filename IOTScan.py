@@ -25,13 +25,41 @@ def print_report(packetsrc, packetcnt, barsize):
     for dest in packetsrc.keys():
         RXPacketper = round((packetsrc[dest]['RX'] / packetcnt) * 100, 2)
         TXPacketper = round((packetsrc[dest]['TX'] / packetcnt) * 100, 2)
-        if 'nslookup' in packetsrc[dest]:
-            print(f"{Color.BLUE}{packetsrc[dest]['nslookup']}\n{Color.CYAN}{Color.BOLD}RX: {packetsrc[dest]['RX']} "
-                  f"({RXPacketper}%){Color.END} | {Color.PURPLE}{Color.BOLD}TX: {packetsrc[dest]['TX']} "
-                  f"({TXPacketper}%){Color.END}")
+
+        # Makes String for RX amount
+        if 1024 <= packetsrc[dest]['RXAmount'] < 1048576:
+            RXAmount = f"{round(packetsrc[dest]['RXAmount']/1024, 2)} KiB"
+        elif packetsrc[dest]['RXAmount'] >= 1048576:
+            RXAmount = f"{round(packetsrc[dest]['RXAmount']/1048576, 2)} MiB"
         else:
-            print(f"{Color.BLUE}{dest}\n{Color.CYAN}{Color.BOLD}RX: {packetsrc[dest]['RX']} ({RXPacketper}%){Color.END}"
-                  f" | {Color.PURPLE}{Color.BOLD}TX: {packetsrc[dest]['TX']} ({TXPacketper}%){Color.END}")
+            RXAmount = f"{packetsrc[dest]['RXAmount']} B"
+
+        # Makes String for TX amount
+        if 1024 <= packetsrc[dest]['TXAmount'] < 1048576:
+            TXAmount = f"{round(packetsrc[dest]['TXAmount']/1024, 2)} KiB"
+        elif packetsrc[dest]['TXAmount'] >= 1048576:
+            TXAmount = f"{round(packetsrc[dest]['TXAmount']/1048576, 2)} MiB"
+        else:
+            TXAmount = f"{packetsrc[dest]['TXAmount']} B"
+
+        # Makes String for total Data Transmitted and Received
+        total_amount = packetsrc[dest]['TXAmount']+packetsrc[dest]['RXAmount']
+        if 1024 <= total_amount < 1048576:
+            amount = f"{round(total_amount/1024, 2)} KiB"
+        elif total_amount >= 1048576:
+            amount = f"{round(total_amount/1048576, 2)} MiB"
+        else:
+            amount = f"{total_amount} B"
+
+        if 'nslookup' in packetsrc[dest]:
+            print(f"{Color.BLUE}{packetsrc[dest]['nslookup']}{Color.END}")
+        else:
+            print(f"{Color.BLUE}{dest}{Color.END}")
+
+        print(f"{Color.CYAN}{Color.BOLD}RX: {packetsrc[dest]['RX']} ({RXPacketper}%) {Color.END}| "
+              f"{Color.PURPLE}{Color.BOLD}TX: {packetsrc[dest]['TX']} ({TXPacketper}%){Color.END}".ljust(barsize+25),
+              f" ({Color.CYAN}{Color.BOLD}{RXAmount}{Color.END} | {Color.PURPLE}{Color.BOLD}{TXAmount}{Color.END})")
+
         packets = packetsrc[dest]['RX'] + packetsrc[dest]['TX']
         perc = packets / packetcnt
         barlen = round(barsize * perc)
@@ -45,7 +73,8 @@ def print_report(packetsrc, packetcnt, barsize):
                 bar += "█"
             else:
                 bar += " "
-        print(f"{Color.GREEN}{Color.BOLD}[{bar}{Color.END}{Color.GREEN}{Color.BOLD}] {round(perc*100, 2)}%{Color.END}")
+        print(f"{Color.GREEN}{Color.BOLD}[{bar}{Color.END}{Color.GREEN}{Color.BOLD}] {round(perc*100, 2)}%"
+              f" ({amount}){Color.END}")
 
 
 def main():
@@ -83,10 +112,13 @@ def main():
             ip = packet.ip.dst
             if ip in packetsrc:
                 packetsrc[ip]['TX'] += 1
+                packetsrc[ip]['TXAmount'] += int(packet.length)
             else:
                 packetsrc[ip] = {}
                 packetsrc[ip]['RX'] = 0
                 packetsrc[ip]['TX'] = 1
+                packetsrc[ip]['RXAmount'] = 0
+                packetsrc[ip]['TXAmount'] = int(packet.length)
 
             if packetsrc[ip].get('nslookup') is None:
                 try:
@@ -98,7 +130,8 @@ def main():
                 nslookup = packetsrc[ip]['nslookup']
 
             print(f"{packet.__dict__['number']}".ljust(7),
-                  f'{packet.ip.src} {Color.PURPLE}{Color.BOLD}-->{Color.END} {nslookup}', f"{packet.__dict__['layers']}")
+                  f'{packet.ip.src} {Color.PURPLE}{Color.BOLD}-->{Color.END} {nslookup}',
+                  f"{Color.BLUE}{packet.length} B{Color.END}", f"{packet.__dict__['layers']}")
 
         # If the destination IP is identified to be part of the subnet or single IP we are looking for, then it makes
         # sure the packet is labeled as a received packet
@@ -107,10 +140,13 @@ def main():
             ip = packet.ip.src
             if ip in packetsrc:
                 packetsrc[ip]['RX'] += 1
+                packetsrc[ip]['RXAmount'] += int(packet.length)
             else:
                 packetsrc[ip] = {}
                 packetsrc[ip]['RX'] = 1
                 packetsrc[ip]['TX'] = 0
+                packetsrc[ip]['RXAmount'] = int(packet.length)
+                packetsrc[ip]['TXAmount'] = 0
 
             if packetsrc[ip].get('nslookup') is None:
                 try:
@@ -122,7 +158,8 @@ def main():
                 nslookup = packetsrc[ip]['nslookup']
 
             print(f"{packet.__dict__['number']}".ljust(7),
-                  f'{packet.ip.dst} {Color.CYAN}{Color.BOLD}<--{Color.END} {nslookup}', f"{packet.__dict__['layers']}")
+                  f'{packet.ip.dst} {Color.CYAN}{Color.BOLD}<--{Color.END} {nslookup}',
+                  f"{Color.BLUE}{packet.length} B{Color.END}", f"{packet.__dict__['layers']}")
 
     for dest in packetsrc.keys():
         for cnt in range(0, 3):
