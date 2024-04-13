@@ -21,6 +21,7 @@ class Color:
 # Prints the final report for all the domains that were hit
 def print_report(packetsrc, packetcnt, barsize):
     packetsrc = dict(sorted(packetsrc.items()))
+    total_bandwidth = 0
     print(f"\n{Color.BLUE}{Color.BOLD}*************** PACKET REPORT ***************{Color.END}")
     for dest in packetsrc.keys():
         RXPacketper = round((packetsrc[dest]['RX'] / packetcnt) * 100, 2)
@@ -51,6 +52,8 @@ def print_report(packetsrc, packetcnt, barsize):
         else:
             amount = f"{total_amount} B"
 
+        total_bandwidth += total_amount
+
         if 'nslookup' in packetsrc[dest]:
             print(f"{Color.BLUE}{packetsrc[dest]['nslookup']}{Color.END}")
         else:
@@ -76,6 +79,14 @@ def print_report(packetsrc, packetcnt, barsize):
         print(f"{Color.GREEN}{Color.BOLD}[{bar}{Color.END}{Color.GREEN}{Color.BOLD}] {round(perc*100, 2)}%"
               f" ({amount}){Color.END}")
 
+    if 1024 <= total_bandwidth < 1048576:
+        amount = f"{round(total_bandwidth / 1024, 2)} KiB"
+    elif total_bandwidth >= 1048576:
+        amount = f"{round(total_bandwidth / 1048576, 2)} MiB"
+    else:
+        amount = f"{total_bandwidth} B"
+
+    print(f"\n{Color.GREEN}{Color.BOLD}Total Bandwidth Used: {amount}")
 
 def main():
     barsize = 50
