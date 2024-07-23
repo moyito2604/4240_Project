@@ -1,14 +1,19 @@
 services:
-    iotscan:
-        container_name: IOTScan
-        cap_add:
-            - NET_RAW
-            - NET_ADMIN
-        network_mode: host
-        privileged: True
-        environment:
-            - INTERFACE=wlan0
-            # Specify first 3 octets for any IP in subnet or all four for a specific IP
-            - SOURCEIP=127.0.0.1
-            - PACKETCNT=1000
-        image: ghcr.io/moyito2604/iotscan:latest
+  iotscan:
+    container_name: IOTScan
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    network_mode: host
+    privileged: true
+    environment:
+      - INTERFACE=wlan0
+      # Specify first 3 octets for any IP in subnet or all four for a specific IP
+      - SOURCEIP=127.0.0.1
+      - PACKETCNT=1000
+    image: ghcr.io/moyito2604/iotscan:latest
+    command: >
+      sh -c "chown root:wireshark /usr/bin/dumpcap &&
+             chmod 750 /usr/bin/dumpcap &&
+             setcap 'cap_net_raw,cap_net_admin=eip' /usr/bin/dumpcap &&
+             python /app/IOTScan.py"
