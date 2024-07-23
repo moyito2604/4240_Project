@@ -17,7 +17,7 @@ WORKDIR /app
 COPY IOTScan.py .
 
 ENV INTERFACE="wlan0"
-ENV SOURCEIP="192.168.0"
+ENV SOURCEIP="127.0.0.1"
 ENV PACKETCNT=1000
 
 CMD [ "python3", "-u", "IOTScan.py" ]
