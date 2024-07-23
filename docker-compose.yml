@@ -9,6 +9,6 @@ services:
         environment:
             - INTERFACE=wlan0
             # Specify first 3 octets for any IP in subnet or all four for a specific IP
-            - SOURCEIP=192.168.0
+            - SOURCEIP=172.24.201.8
             - PACKETCNT=1000
         image: ghcr.io/moyito2604/iotscan:latest
